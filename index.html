@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coalition Odds Simulator</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #182230;
+      background: #f4f7fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; padding: 32px 16px; }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 28px;
+      background: #fff;
+      border: 1px solid #dce3ed;
+      border-radius: 14px;
+      box-shadow: 0 8px 28px rgb(24 34 48 / 7%);
+    }
+
+    h1 { margin: 0 0 8px; font-size: clamp(1.6rem, 4vw, 2.1rem); }
+    p { line-height: 1.55; }
+    .intro { margin: 0 0 24px; color: #526174; }
+    .settings { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 20px 0; }
+    .setting { color: #526174; }
+    .setting strong { color: #182230; }
+
+    .variable-list { display: grid; gap: 10px; }
+    .variable-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1.2fr) minmax(95px, .7fr) minmax(130px, .9fr) minmax(120px, .8fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    label { display: grid; gap: 5px; font-size: .88rem; font-weight: 600; }
+    select {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid #bac6d5;
+      border-radius: 7px;
+      background: #fff;
+      font: inherit;
+    }
+    input {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid #bac6d5;
+      border-radius: 7px;
+      font: inherit;
+    }
+
+    input:focus, select:focus, button:focus-visible { outline: 3px solid #8bbcff; outline-offset: 2px; }
+    button {
+      min-height: 42px;
+      padding: 8px 13px;
+      border: 0;
+      border-radius: 7px;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .remove { color: #9d2633; background: #fff0f1; }
+    .secondary { margin-top: 12px; color: #183b68; background: #eaf2fc; }
+    .primary { color: #fff; background: #175caa; }
+    .primary:disabled { cursor: not-allowed; opacity: .5; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 20px; }
+    .sum { margin: 18px 0 0; font-weight: 700; }
+    .sum.invalid, .message.error { color: #a3212e; }
+    .sum.valid { color: #187046; }
+    .message { min-height: 1.5em; margin: 12px 0 0; }
+
+    .control-setting {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding: 14px;
+      border: 1px solid #dce3ed;
+      border-radius: 9px;
+    }
+
+    .control-setting label { display: flex; align-items: center; gap: 8px; }
+    .control-setting select { width: auto; min-width: 180px; }
+    .electorate-input { min-width: 0; }
+    .electorate-input input { min-width: 0; }
+    .note {
+      margin-top: 24px;
+      padding: 12px 14px;
+      background: #f1f6fc;
+      border-left: 4px solid #4784c5;
+      color: #40536a;
+      font-size: .92rem;
+    }
+
+    #results { margin-top: 30px; }
+    #results h2 { margin-bottom: 8px; font-size: 1.3rem; }
+    .results-intro { color: #526174; }
+    .result-list { display: grid; gap: 12px; margin-top: 18px; }
+    .result-card { padding: 14px; border: 1px solid #dce3ed; border-radius: 9px; }
+    .seat-breakdown { margin-top: 28px; }
+    .seat-breakdown h3 { margin-bottom: 6px; }
+    .seat-graphic { position: relative; display: flex; width: 100%; min-height: 30px; overflow: visible; margin: 26px 0 16px; border-radius: 7px; background: #e8edf4; }
+    .seat-segment { display: flex; align-items: center; justify-content: center; min-width: 0; color: #fff; font-size: .75rem; font-weight: 700; overflow: hidden; white-space: nowrap; }
+    .majority-marker { position: absolute; z-index: 1; top: -9px; bottom: -9px; border-left: 2px dashed #182230; pointer-events: none; }
+    .majority-marker span { position: absolute; top: -22px; left: 0; padding: 1px 4px; background: #fff; color: #182230; font-size: .75rem; font-weight: 700; white-space: nowrap; transform: translateX(-50%); }
+    .seat-coalition-labels { display: flex; justify-content: space-between; gap: 12px; color: #526174; font-size: .88rem; font-weight: 700; }
+    .seat-party-list { display: grid; gap: 10px; }
+    .seat-party { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(100px, 3fr) minmax(120px, auto); gap: 12px; align-items: center; }
+    .seat-party-name { overflow-wrap: anywhere; font-weight: 650; }
+    .seat-party-track { height: 14px; overflow: hidden; border-radius: 99px; background: #e8edf4; }
+    .seat-party-fill { height: 100%; border-radius: inherit; }
+    .seat-value { text-align: right; color: #40536a; font-size: .9rem; }
+    .left-seat { background: #c62828; }
+    .right-seat { background: #1976d2; }
+    .other-seat { background: #78889b; }
+    .party-national { background: #1976d2; }
+    .party-labour { background: #c62828; }
+    .party-greens { background: #2e7d32; }
+    .party-act { background: #e0b400; color: #182230; }
+    .party-nz-first { background: #202124; }
+    .party-te-pati-maori { background: #7b1e3a; }
+    .party-opportunity { background: #008c8c; }
+    .result-heading { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
+    .result-detail { margin: 5px 0 10px; color: #526174; font-size: .9rem; }
+    .track { height: 9px; overflow: hidden; background: #e8edf4; border-radius: 99px; }
+    .bar { height: 100%; background: #347dc1; border-radius: inherit; }
+    .left-bar { background: #c62828; }
+    .right-bar { background: #1976d2; }
+    .neutral-bar { background: #78889b; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 520px) {
+      body { padding: 16px 10px; }
+      main { padding: 20px 16px; }
+      .variable-row { grid-template-columns: 1fr 1fr; gap: 7px; }
+      .variable-row label:first-child { grid-column: 1 / -1; }
+      .control-setting select { flex: 1; }
+      .seat-party { grid-template-columns: 1fr auto; gap: 5px 10px; }
+      .seat-party-track { grid-column: 1 / -1; grid-row: 2; }
+      .seat-value { text-align: right; }
+      .remove { padding-inline: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Coalition Odds Simulator</h1>
+    <p class="intro">
+      Enter each party's polling share, coalition alignment, and number of electorates it wins.
+      The simulator estimates how often the left or right reaches a parliamentary majority.
+    </p>
+
+    <div class="settings" aria-label="Simulation settings">
+      <span class="setting">Model: <strong>New Zealand MMP</strong></span>
+      <span class="setting">Simulations: <strong>50,000</strong></span>
+      <span class="setting">Responses per poll: <strong>832</strong></span>
+      <span class="setting">Threshold: <strong>5% or an electorate seat</strong></span>
+    </div>
+
+    <section aria-label="Party polling inputs">
+      <div id="variables" class="variable-list"></div>
+      <button id="add-variable" class="secondary" type="button">Add a party</button>
+      <p id="sum" class="sum" aria-live="polite"></p>
+
+      <p class="setting">
+        Enter each party's electorate seat count. Electorate seats are guaranteed; if they exceed a
+        party's vote-based allocation, only the extra seats are added to Parliament.
+      </p>
+
+      <div class="control-setting">
+        <label for="fixed-party">Hold party vote constant</label>
+        <select id="fixed-party" aria-label="Party with fixed vote share">
+          <option value="">No party held fixed</option>
+        </select>
+        <span class="setting">Selected party stays at its entered share in every simulated poll.</span>
+      </div>
+
+      <div class="actions">
+        <button id="run" class="primary" type="button">Run 50,000 simulations</button>
+        <span id="status" class="message" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <p class="note">
+      Use one row per party (do not combine several sub-5% parties into an "Other" row). If shares
+      total less than 100%, the remainder is allocated proportionally across parties with entered
+      poll share; when a party is held fixed, the remainder is shared among the other parties.
+      Each poll samples 832 responses; a party qualifies for seats when its simulated vote is at least 5%
+      or it wins at least one electorate. Seats are allocated among qualifying
+      parties using the Sainte-Laguë method. A party that wins electorates receives at least that
+      many seats; any seats above its party-vote allocation create an overhang and increase
+      Parliament's size. Majority thresholds adjust to the resulting seat count. The
+      approximate 95% polling margin at a 50% share is ±3.4 percentage points. This is a
+      simplified polling model, not an official election forecast.
+    </p>
+
+    <section id="results" aria-labelledby="results-title" hidden>
+      <h2 id="results-title">Coalition formation odds</h2>
+      <p id="results-intro" class="results-intro"></p>
+      <div id="result-list" class="result-list"></div>
+      <section class="seat-breakdown" aria-labelledby="seat-breakdown-title">
+        <h3 id="seat-breakdown-title">Seat breakdown by party</h3>
+        <p class="results-intro">Average seats across all simulations; the range shows the middle 95% of simulated outcomes.</p>
+        <div class="seat-coalition-labels">
+          <span>Left coalition</span>
+          <span>Other / neither</span>
+          <span>Right coalition</span>
+        </div>
+        <div id="seat-graphic" class="seat-graphic" role="img" aria-label="Average parliament seats by party"></div>
+        <div id="seat-party-list" class="seat-party-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const SIMULATIONS = 50000;
+    const SAMPLE_SIZE = 832;
+    const PARLIAMENT_SEATS = 120;
+    const ELECTORATE_SEAT_CAP = 71;
+    const QUALIFICATION_THRESHOLD = 0.05;
+    const variablesElement = document.querySelector("#variables");
+    const sumElement = document.querySelector("#sum");
+    const runButton = document.querySelector("#run");
+    const statusElement = document.querySelector("#status");
+    const resultsElement = document.querySelector("#results");
+    const resultListElement = document.querySelector("#result-list");
+    const resultsIntroElement = document.querySelector("#results-intro");
+    const seatGraphicElement = document.querySelector("#seat-graphic");
+    const seatPartyListElement = document.querySelector("#seat-party-list");
+    const fixedPartyElement = document.querySelector("#fixed-party");
+    const partyNames = ["National", "Labour", "Greens", "ACT", "NZ First", "Opportunity", "Te Pāti Māori"];
+    const defaultAlignments = {
+      National: "right",
+      Labour: "left",
+      Greens: "left",
+      ACT: "right",
+      "NZ First": "right",
+      Opportunity: "left",
+      "Te Pāti Māori": "left",
+    };
+    const defaultElectorateSeats = {
+      National: 37,
+      Labour: 25,
+      Greens: 3,
+      ACT: 2,
+      "NZ First": 0,
+      Opportunity: 0,
+      "Te Pāti Māori": 4,
+    };
+    let nextId = 1;
+
+    function addVariable(name, percentage = 0) {
+      if (variablesElement.querySelectorAll(".variable-row").length >= partyNames.length) return;
+      if (!name) {
+        const selectedNames = new Set(Array.from(
+          variablesElement.querySelectorAll('select[aria-label="Party name"]'),
+          (select) => select.value
+        ));
+        name = partyNames.find((partyName) => !selectedNames.has(partyName));
+      }
+      const row = document.createElement("div");
+      row.className = "variable-row";
+      row.dataset.partyId = `party-${nextId}`;
+
+      const nameLabel = document.createElement("label");
+      nameLabel.textContent = "Party";
+      const nameSelect = document.createElement("select");
+      nameSelect.setAttribute("aria-label", "Party name");
+      for (const partyName of partyNames) {
+        const option = document.createElement("option");
+        option.value = partyName;
+        option.textContent = partyName;
+        nameSelect.append(option);
+      }
+      nameSelect.value = name;
+      nameLabel.append(nameSelect);
+
+      const percentageLabel = document.createElement("label");
+      percentageLabel.textContent = "Poll share (%)";
+      const percentageInput = document.createElement("input");
+      percentageInput.type = "number";
+      percentageInput.min = "0";
+      percentageInput.max = "100";
+      percentageInput.step = "any";
+      percentageInput.value = String(percentage);
+      percentageInput.required = true;
+      percentageInput.setAttribute("aria-label", "Party polling percentage");
+      percentageLabel.append(percentageInput);
+
+      const alignmentLabel = document.createElement("label");
+      alignmentLabel.textContent = "Coalition";
+      const alignmentSelect = document.createElement("select");
+      alignmentSelect.setAttribute("aria-label", "Coalition alignment");
+      for (const [value, text] of [["left", "Left"], ["right", "Right"], ["other", "Other / neither"]]) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = text;
+        if (value === defaultAlignments[name]) option.selected = true;
+        alignmentSelect.append(option);
+      }
+      alignmentLabel.append(alignmentSelect);
+
+      const electorateLabel = document.createElement("label");
+      electorateLabel.className = "electorate-input";
+      electorateLabel.textContent = "Electorate seats";
+      const electorateInput = document.createElement("input");
+      electorateInput.type = "number";
+      electorateInput.min = "0";
+      electorateInput.max = String(ELECTORATE_SEAT_CAP);
+      electorateInput.step = "1";
+      electorateInput.value = String(defaultElectorateSeats[name] || 0);
+      electorateInput.required = true;
+      electorateInput.setAttribute("aria-label", "Electorate seats won");
+      electorateLabel.append(electorateInput);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "remove";
+      removeButton.textContent = "Remove";
+      removeButton.setAttribute("aria-label", `Remove ${name}`);
+      removeButton.addEventListener("click", () => {
+        row.remove();
+        updateValidation();
+      });
+
+      row.append(nameLabel, percentageLabel, alignmentLabel, electorateLabel, removeButton);
+      variablesElement.append(row);
+      nextId += 1;
+      nameSelect.addEventListener("change", () => {
+        electorateInput.value = String(defaultElectorateSeats[nameSelect.value] || 0);
+        updateValidation();
+      });
+      percentageInput.addEventListener("input", updateValidation);
+      alignmentSelect.addEventListener("change", updateValidation);
+      electorateInput.addEventListener("input", updateValidation);
+      updateValidation();
+    }
+
+    function readVariables() {
+      return Array.from(variablesElement.querySelectorAll(".variable-row"), (row) => {
+        const nameSelect = row.querySelector('select[aria-label="Party name"]');
+        const percentageInput = row.querySelector('input[type="number"]');
+        const alignmentSelect = row.querySelector('select[aria-label="Coalition alignment"]');
+        const electorateInput = row.querySelector('input[aria-label="Electorate seats won"]');
+        return {
+          id: row.dataset.partyId,
+          name: nameSelect.value,
+          percentage: percentageInput.value === "" ? NaN : Number(percentageInput.value),
+          alignment: alignmentSelect.value,
+          electorateSeats: electorateInput.value === "" ? NaN : Number(electorateInput.value),
+        };
+      });
+    }
+
+    function updatePartyNameOptions() {
+      const rows = Array.from(variablesElement.querySelectorAll(".variable-row"));
+      for (const row of rows) {
+        const select = row.querySelector('select[aria-label="Party name"]');
+        const usedByOtherRows = new Set(rows
+          .filter((otherRow) => otherRow !== row)
+          .map((otherRow) => otherRow.querySelector('select[aria-label="Party name"]').value));
+        for (const option of select.options) {
+          option.disabled = usedByOtherRows.has(option.value);
+        }
+      }
+      document.querySelector("#add-variable").disabled = rows.length >= partyNames.length;
+    }
+
+    function updateFixedPartyOptions(variables) {
+      const selectedId = fixedPartyElement.value;
+      fixedPartyElement.replaceChildren();
+      const noneOption = document.createElement("option");
+      noneOption.value = "";
+      noneOption.textContent = "No party held fixed";
+      fixedPartyElement.append(noneOption);
+      for (const variable of variables) {
+        const option = document.createElement("option");
+        option.value = variable.id;
+        option.textContent = variable.name;
+        fixedPartyElement.append(option);
+      }
+      if (variables.some((variable) => variable.id === selectedId)) {
+        fixedPartyElement.value = selectedId;
+      }
+    }
+
+    function getEffectiveVariables(variables, fixedPartyId) {
+      const total = variables.reduce((sum, variable) => sum + variable.percentage, 0);
+      if (total > 100 + 0.000001) {
+        return { error: "Party polling percentages exceed 100%." };
+      }
+
+      const shares = variables.map((variable) => variable.percentage);
+      const remainder = Math.max(0, 100 - total);
+      if (remainder > 0.000001) {
+        const fixedIndex = variables.findIndex((variable) => variable.id === fixedPartyId);
+        const recipientIndices = variables
+          .map((_, index) => index)
+          .filter((index) => index !== fixedIndex);
+        const recipientTotal = recipientIndices.reduce((sum, index) => sum + shares[index], 0);
+        if (recipientTotal <= 0) {
+          return { error: fixedIndex >= 0
+            ? "Enter a poll share for at least one other party so the remainder can be allocated."
+            : "Enter at least one positive party poll share to allocate the remaining percentage." };
+        }
+        for (const index of recipientIndices) {
+          shares[index] += remainder * shares[index] / recipientTotal;
+        }
+      }
+
+      return {
+        variables: variables.map((variable, index) => ({
+          ...variable,
+          percentage: shares[index],
+        })),
+      };
+    }
+
+    function updateValidation(clearResults = true, refreshStatus = true) {
+      updatePartyNameOptions();
+      const variables = readVariables();
+      const sum = variables.reduce((total, variable) => total + variable.percentage, 0);
+      const valuesValid = variables.length >= 2 && variables.every((variable) =>
+        variable.name.length > 0 &&
+        Number.isFinite(variable.percentage) &&
+        variable.percentage >= 0 &&
+        variable.percentage <= 100
+      );
+      const electorateSeatTotal = variables.reduce((total, variable) => total + variable.electorateSeats, 0);
+      const electorateSeatsValid = variables.every((variable) =>
+        Number.isInteger(variable.electorateSeats) &&
+        variable.electorateSeats >= 0 &&
+        variable.electorateSeats <= ELECTORATE_SEAT_CAP
+      ) && electorateSeatTotal <= ELECTORATE_SEAT_CAP;
+
+      updateFixedPartyOptions(variables);
+      const effective = valuesValid
+        ? getEffectiveVariables(variables, fixedPartyElement.value)
+        : { error: "Enter valid party percentages." };
+      const totalsValid = valuesValid && electorateSeatsValid && !effective.error;
+      const totalLabel = Number.isFinite(sum)
+        ? `Entered total: ${sum.toLocaleString(undefined, { maximumFractionDigits: 4 })}%`
+        : "Entered total: —%";
+      sumElement.textContent = totalsValid && sum < 100 - 0.000001
+        ? `${totalLabel}. Remaining ${(100 - sum).toFixed(2)}% will be allocated proportionally.`
+        : totalLabel;
+      sumElement.className = `sum ${totalsValid ? "valid" : "invalid"}`;
+      runButton.disabled = !totalsValid;
+      if (refreshStatus) {
+        if (variables.length < 2) {
+          statusElement.className = "message";
+          statusElement.textContent = "Add at least two parties.";
+        } else if (!valuesValid) {
+          statusElement.className = "message";
+          statusElement.textContent = "Use valid party polling percentages from 0 to 100.";
+        } else if (!electorateSeatsValid) {
+          statusElement.className = "message";
+          statusElement.textContent = `Enter whole-number electorate seats from 0 to ${ELECTORATE_SEAT_CAP}; the total cannot exceed ${ELECTORATE_SEAT_CAP}.`;
+        } else if (effective.error) {
+          statusElement.className = "message";
+          statusElement.textContent = effective.error;
+        } else if (!statusElement.classList.contains("error")) {
+          statusElement.className = "message";
+          statusElement.textContent = "";
+        }
+      }
+      if (clearResults) resultsElement.hidden = true;
+    }
+
+    function drawPoll(variables, cumulative, fixedPartyIndex = -1) {
+      const counts = new Array(variables.length).fill(0);
+      if (fixedPartyIndex >= 0) {
+        const fixedVotes = variables[fixedPartyIndex].percentage / 100 * SAMPLE_SIZE;
+        const remainingVotes = SAMPLE_SIZE - fixedVotes;
+        const remainingShare = 100 - variables[fixedPartyIndex].percentage;
+        if (remainingVotes <= 0 || remainingShare <= 0) {
+          counts[fixedPartyIndex] = SAMPLE_SIZE;
+          return counts;
+        }
+        const conditionalCumulative = [];
+        let conditionalTotal = 0;
+        for (let index = 0; index < variables.length; index += 1) {
+          if (index === fixedPartyIndex) continue;
+          conditionalTotal += variables[index].percentage / remainingShare;
+          conditionalCumulative.push({ index, threshold: conditionalTotal });
+        }
+        conditionalCumulative[conditionalCumulative.length - 1].threshold = 1;
+        const conditionalCounts = new Array(variables.length).fill(0);
+        for (let response = 0; response < SAMPLE_SIZE; response += 1) {
+          const draw = Math.random();
+          let outcome = 0;
+          while (outcome < conditionalCumulative.length - 1 && draw >= conditionalCumulative[outcome].threshold) {
+            outcome += 1;
+          }
+          conditionalCounts[conditionalCumulative[outcome].index] += 1;
+        }
+        counts[fixedPartyIndex] = fixedVotes;
+        for (let index = 0; index < variables.length; index += 1) {
+          if (index !== fixedPartyIndex) {
+            counts[index] = conditionalCounts[index] / SAMPLE_SIZE * remainingVotes;
+          }
+        }
+        return counts;
+      }
+
+      for (let response = 0; response < SAMPLE_SIZE; response += 1) {
+        const draw = Math.random();
+        let outcome = 0;
+        while (outcome < cumulative.length - 1 && draw >= cumulative[outcome]) {
+          outcome += 1;
+        }
+        counts[outcome] += 1;
+      }
+      return counts;
+    }
+
+    function allocateSeats(voteCounts, eligible, seatCount = PARLIAMENT_SEATS) {
+      const seats = new Array(voteCounts.length).fill(0);
+      for (let seat = 0; seat < seatCount; seat += 1) {
+        let winner = -1;
+        let bestQuotient = -1;
+        for (let index = 0; index < voteCounts.length; index += 1) {
+          if (!eligible[index]) continue;
+          const quotient = voteCounts[index] / (2 * seats[index] + 1);
+          if (quotient > bestQuotient) {
+            bestQuotient = quotient;
+            winner = index;
+          }
+        }
+        if (winner < 0) break;
+        seats[winner] += 1;
+      }
+      return seats;
+    }
+
+    function percentile(sortedValues, fraction) {
+      const position = (sortedValues.length - 1) * fraction;
+      const lowerIndex = Math.floor(position);
+      const upperIndex = Math.ceil(position);
+      const weight = position - lowerIndex;
+      return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight;
+    }
+
+    function simulate(variables, fixedPartyId) {
+      const proportions = variables.map((variable) => variable.percentage / 100);
+      const cumulative = [];
+      let runningTotal = 0;
+      for (const proportion of proportions) {
+        runningTotal += proportion;
+        cumulative.push(runningTotal);
+      }
+      cumulative[cumulative.length - 1] = 1;
+
+      const outcomes = { left: 0, right: 0, neither: 0 };
+      const coalitionSeatTotals = { left: 0, right: 0 };
+      const partySeatSamples = variables.map(() => new Array(SIMULATIONS));
+      const fixedPartyIndex = variables.findIndex((variable) => variable.id === fixedPartyId);
+      let overhangSimulations = 0;
+      let overhangSeatTotal = 0;
+      let parliamentSeatTotal = 0;
+      let minimumMajorityThreshold = PARLIAMENT_SEATS;
+      let maximumMajorityThreshold = 0;
+
+      for (let simulation = 0; simulation < SIMULATIONS; simulation += 1) {
+        const counts = drawPoll(variables, cumulative, fixedPartyIndex);
+        const eligible = counts.map((count, index) =>
+          count / SAMPLE_SIZE >= QUALIFICATION_THRESHOLD || variables[index].electorateSeats > 0
+        );
+        const proportionalSeats = allocateSeats(counts, eligible);
+        const seats = proportionalSeats.map((seatCount, index) =>
+          Math.max(seatCount, variables[index].electorateSeats)
+        );
+        const overhangSeats = seats.reduce((total, seatCount, index) =>
+          total + Math.max(0, seatCount - proportionalSeats[index]), 0
+        );
+        const parliamentSeatCount = PARLIAMENT_SEATS + overhangSeats;
+        const coalitionMajorityThreshold = Math.floor(parliamentSeatCount / 2) + 1;
+        if (overhangSeats > 0) {
+          overhangSimulations += 1;
+        }
+        overhangSeatTotal += overhangSeats;
+        parliamentSeatTotal += parliamentSeatCount;
+        minimumMajorityThreshold = Math.min(minimumMajorityThreshold, coalitionMajorityThreshold);
+        maximumMajorityThreshold = Math.max(maximumMajorityThreshold, coalitionMajorityThreshold);
+
+        for (let index = 0; index < variables.length; index += 1) {
+          partySeatSamples[index][simulation] = seats[index];
+        }
+
+        let leftSeats = 0;
+        let rightSeats = 0;
+        for (let index = 0; index < variables.length; index += 1) {
+          if (variables[index].alignment === "left") leftSeats += seats[index];
+          if (variables[index].alignment === "right") rightSeats += seats[index];
+        }
+        coalitionSeatTotals.left += leftSeats;
+        coalitionSeatTotals.right += rightSeats;
+        if (leftSeats >= coalitionMajorityThreshold) outcomes.left += 1;
+        else if (rightSeats >= coalitionMajorityThreshold) outcomes.right += 1;
+        else outcomes.neither += 1;
+      }
+      return {
+        outcomes,
+        coalitionSeatTotals,
+        partySeatSamples,
+        overhangSimulations,
+        overhangSeatTotal,
+        averageParliamentSeatCount: parliamentSeatTotal / SIMULATIONS,
+        minimumMajorityThreshold,
+        maximumMajorityThreshold,
+      };
+    }
+
+    function addResultCard(title, subtitle, percentage, colorClass) {
+      const card = document.createElement("article");
+      card.className = "result-card";
+      const heading = document.createElement("div");
+      heading.className = "result-heading";
+      const label = document.createElement("span");
+      label.textContent = title;
+      const odds = document.createElement("span");
+      odds.textContent = `${percentage.toFixed(1)}% of simulations`;
+      heading.append(label, odds);
+
+      const detail = document.createElement("p");
+      detail.className = "result-detail";
+      detail.textContent = subtitle;
+
+      const track = document.createElement("div");
+      track.className = "track";
+      track.setAttribute("role", "img");
+      track.setAttribute("aria-label", `${title}: ${percentage.toFixed(1)} percent of simulations`);
+      const bar = document.createElement("div");
+      bar.className = `bar ${colorClass}`;
+      bar.style.width = `${percentage}%`;
+      track.append(bar);
+      card.append(heading, detail, track);
+      resultListElement.append(card);
+    }
+
+    function renderSeatBreakdown(
+      variables,
+      seatSamples,
+      parliamentSeatCount,
+      minimumMajorityThreshold,
+      maximumMajorityThreshold
+    ) {
+      const partyColorClasses = {
+        National: "party-national",
+        Labour: "party-labour",
+        Greens: "party-greens",
+        ACT: "party-act",
+        "NZ First": "party-nz-first",
+        "Te Pāti Māori": "party-te-pati-maori",
+        Opportunity: "party-opportunity",
+      };
+      seatGraphicElement.replaceChildren();
+      seatPartyListElement.replaceChildren();
+      seatGraphicElement.setAttribute(
+        "aria-label",
+        `Average party seat allocation across a ${parliamentSeatCount}-seat Parliament`
+      );
+
+      const partyResults = variables.map((variable, index) => {
+        const samples = seatSamples[index];
+        const sorted = samples.slice().sort((a, b) => a - b);
+        const average = samples.reduce((total, value) => total + value, 0) / samples.length;
+        return {
+          variable,
+          average,
+          low: percentile(sorted, 0.025),
+          high: percentile(sorted, 0.975),
+        };
+      });
+
+      const coalitionOrder = { left: 0, other: 1, right: 2 };
+      partyResults.sort((a, b) =>
+        coalitionOrder[a.variable.alignment] - coalitionOrder[b.variable.alignment] ||
+        (a.variable.alignment === "left"
+          ? b.variable.percentage - a.variable.percentage
+          : a.variable.alignment === "right"
+            ? a.variable.percentage - b.variable.percentage
+            : b.variable.percentage - a.variable.percentage)
+      );
+      let averageLeftSeats = 0;
+      let averageRightSeats = 0;
+
+      for (const result of partyResults) {
+        const { variable, average, low, high } = result;
+        const colorClass = partyColorClasses[variable.name] || "other-seat";
+        if (variable.alignment === "left") averageLeftSeats += average;
+        if (variable.alignment === "right") averageRightSeats += average;
+
+        if (average > 0) {
+          const segment = document.createElement("div");
+          segment.className = `seat-segment ${colorClass}`;
+          segment.style.width = `${average / parliamentSeatCount * 100}%`;
+          segment.title = `${variable.name}: ${average.toFixed(1)} average seats`;
+          segment.setAttribute("aria-hidden", "true");
+          if (average / parliamentSeatCount > 0.055) {
+            segment.textContent = `${average.toFixed(1)}`;
+          }
+          seatGraphicElement.append(segment);
+        }
+
+        const row = document.createElement("div");
+        row.className = "seat-party";
+        const name = document.createElement("span");
+        name.className = "seat-party-name";
+        name.textContent = variable.name;
+        const track = document.createElement("div");
+        track.className = "seat-party-track";
+        track.setAttribute("role", "img");
+        track.setAttribute(
+          "aria-label",
+          `${variable.name}: ${average.toFixed(1)} average seats, middle 95 percent range ${low.toFixed(0)} to ${high.toFixed(0)}`
+        );
+        const fill = document.createElement("div");
+        fill.className = `seat-party-fill ${colorClass}`;
+        fill.style.width = `${average / parliamentSeatCount * 100}%`;
+        track.append(fill);
+        const value = document.createElement("span");
+        value.className = "seat-value";
+        value.textContent = `${average.toFixed(1)} seats · ${low.toFixed(0)}–${high.toFixed(0)} range`;
+        row.append(name, track, value);
+        seatPartyListElement.append(row);
+      }
+
+      const majorityMarker = document.createElement("div");
+      majorityMarker.className = "majority-marker";
+      const averageMajorityThreshold = (minimumMajorityThreshold + maximumMajorityThreshold) / 2;
+      majorityMarker.style.left = `${Math.min(100, Math.max(0, averageMajorityThreshold / parliamentSeatCount * 100))}%`;
+      const markerLabel = document.createElement("span");
+      markerLabel.textContent = minimumMajorityThreshold === maximumMajorityThreshold
+        ? `Majority: ${minimumMajorityThreshold}`
+        : `Majority: ${minimumMajorityThreshold}–${maximumMajorityThreshold}`;
+      majorityMarker.append(markerLabel);
+      seatGraphicElement.append(majorityMarker);
+      seatGraphicElement.setAttribute(
+        "aria-label",
+        `Average seats: left coalition ${averageLeftSeats.toFixed(1)}, right coalition ${averageRightSeats.toFixed(1)}. Majority threshold ranges from ${minimumMajorityThreshold} to ${maximumMajorityThreshold} seats; Parliament averages ${parliamentSeatCount.toFixed(1)} seats. Parties are grouped by coalition.`
+      );
+    }
+
+    document.querySelector("#add-variable").addEventListener("click", () => {
+      addVariable();
+      updateValidation();
+    });
+    fixedPartyElement.addEventListener("change", () => updateValidation());
+    runButton.addEventListener("click", () => {
+      const enteredVariables = readVariables();
+      const fixedPartyId = fixedPartyElement.value || null;
+      const effective = getEffectiveVariables(enteredVariables, fixedPartyId);
+      if (runButton.disabled) return;
+      if (effective.error) {
+        statusElement.className = "message error";
+        statusElement.textContent = effective.error;
+        return;
+      }
+      const variables = effective.variables;
+      const enteredTotal = enteredVariables.reduce((total, variable) => total + variable.percentage, 0);
+      const remainder = Math.max(0, 100 - enteredTotal);
+      runButton.disabled = true;
+      statusElement.className = "message";
+      statusElement.textContent = "Running simulations…";
+      resultsElement.hidden = true;
+
+      window.setTimeout(() => {
+        try {
+          const results = simulate(variables, fixedPartyId);
+          resultListElement.replaceChildren();
+          renderSeatBreakdown(
+            variables,
+            results.partySeatSamples,
+            results.averageParliamentSeatCount,
+            results.minimumMajorityThreshold,
+            results.maximumMajorityThreshold
+          );
+          const rate = (outcome) => outcome / SIMULATIONS * 100;
+          addResultCard(
+            "Left coalition reaches a majority",
+            `Average left-aligned seats: ${(results.coalitionSeatTotals.left / SIMULATIONS).toFixed(1)} of ${results.averageParliamentSeatCount.toFixed(1)}.`,
+            rate(results.outcomes.left),
+            "left-bar"
+          );
+          addResultCard(
+            "Right coalition reaches a majority",
+            `Average right-aligned seats: ${(results.coalitionSeatTotals.right / SIMULATIONS).toFixed(1)} of ${results.averageParliamentSeatCount.toFixed(1)}.`,
+            rate(results.outcomes.right),
+            "right-bar"
+          );
+          addResultCard(
+            "Neither reaches a majority",
+            "A hung parliament or a majority requiring support from parties marked Other / neither.",
+            rate(results.outcomes.neither),
+            "neutral-bar"
+          );
+          const overhangAverage = results.overhangSeatTotal / SIMULATIONS;
+          resultsIntroElement.textContent =
+            `${SIMULATIONS.toLocaleString()} simulated polls of ${SAMPLE_SIZE} responses each. Parliament averaged ${results.averageParliamentSeatCount.toFixed(1)} seats; majority thresholds ranged from ${results.minimumMajorityThreshold} to ${results.maximumMajorityThreshold}. ` +
+            (remainder > 0.000001
+              ? `${remainder.toFixed(2)} percentage points were allocated proportionally ${fixedPartyId ? "among the other parties" : "across the parties"}. `
+              : "") +
+            (fixedPartyId
+              ? `${variables.find((variable) => variable.id === fixedPartyId).name} was held fixed at ${variables.find((variable) => variable.id === fixedPartyId).percentage.toFixed(2)}% in every poll. `
+              : "All party shares varied in each poll. ") +
+            (results.overhangSimulations > 0
+              ? `An overhang occurred in ${results.overhangSimulations.toLocaleString()} simulations, averaging ${overhangAverage.toFixed(2)} extra seats.`
+              : "No overhang occurred.");
+          resultsElement.hidden = false;
+          statusElement.className = "message";
+          statusElement.textContent = "Simulation complete.";
+        } catch (error) {
+          statusElement.className = "message error";
+          statusElement.textContent = `Simulation failed: ${error.message}`;
+        } finally {
+          updateValidation(false, false);
+        }
+      }, 0);
+    });
+
+    for (const name of partyNames) addVariable(name, 0);
+    updateValidation();
+  </script>
+</body>
+</html>
